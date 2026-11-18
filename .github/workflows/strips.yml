@@ -1,0 +1,34 @@
+name: fx-strips
+
+on:
+  schedule:
+    - cron: "40 */6 * * *"   # 6시간마다 (UTC), fx-card와 20분 차이
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fonts
+        run: |
+          mkdir -p fonts
+          for w in Regular Bold ExtraBold; do
+            curl -sSfL -o fonts/Pretendard-$w.otf https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-$w.otf
+          done
+      - run: pip install pillow==10.4.0
+      - run: python strips.py
+      - name: Commit if changed
+        run: |
+          git config user.name "fx-bot"
+          git config user.email "fx-bot@users.noreply.github.com"
+          git pull --rebase
+          git add out/fx_head.png out/fx_usd.png out/fx_jpy.png
+          git diff --cached --quiet || git commit -m "fx strips $(date -u +%F)"
+          git push
